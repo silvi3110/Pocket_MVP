@@ -14,6 +14,8 @@ const adminRoutes = require('./routes/admin');
 const tataRoutes = require('./routes/tata');
 const insightsRoutes = require('./routes/insights');
 const mascotaRoutes = require('./routes/mascota');
+const earnRoutes = require('./routes/earn');
+const swapRoutes = require('./routes/swap');
 
 const app = express();
 const PORT = process.env.PORT || 3000;
@@ -46,6 +48,8 @@ app.use('/api/admin', adminRoutes);
 app.use('/api/tata', tataRoutes);
 app.use('/api/insights', insightsRoutes);
 app.use('/api/mascota', mascotaRoutes);
+app.use('/api/earn', earnRoutes);
+app.use('/api/swap', swapRoutes);
 
 app.listen(PORT, '0.0.0.0', () => {
   console.log(`Pocket Card API → http://localhost:${PORT}`);

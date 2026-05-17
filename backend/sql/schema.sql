@@ -26,13 +26,16 @@ CREATE INDEX IF NOT EXISTS idx_users_ci       ON users(ci);
 CREATE INDEX IF NOT EXISTS idx_users_telefono ON users(telefono);
 
 CREATE TABLE IF NOT EXISTS wallets (
-  id          SERIAL PRIMARY KEY,
-  user_id     INTEGER NOT NULL UNIQUE
-              REFERENCES users(id) ON DELETE CASCADE,
-  saldo_bob   NUMERIC(12, 2) NOT NULL DEFAULT 0 CHECK (saldo_bob >= 0),
-  saldo_viva  NUMERIC(18, 8) NOT NULL DEFAULT 0 CHECK (saldo_viva >= 0),
-  puntos      INTEGER NOT NULL DEFAULT 0 CHECK (puntos >= 0),
-  updated_at  TIMESTAMPTZ NOT NULL DEFAULT NOW()
+  id           SERIAL PRIMARY KEY,
+  user_id      INTEGER NOT NULL UNIQUE
+               REFERENCES users(id) ON DELETE CASCADE,
+  saldo_bob    NUMERIC(12, 2) NOT NULL DEFAULT 0 CHECK (saldo_bob >= 0),   -- fondo pendiente de conversión (cash-in en tránsito)
+  saldo_viva   NUMERIC(18, 8) NOT NULL DEFAULT 0 CHECK (saldo_viva >= 0),  -- saldo principal en $VIVA
+  saldo_usdt   NUMERIC(18, 8) NOT NULL DEFAULT 0 CHECK (saldo_usdt >= 0),  -- saldo en USDT
+  puntos       INTEGER NOT NULL DEFAULT 0 CHECK (puntos >= 0),             -- puntos Pocket
+  earn_activo  BOOLEAN NOT NULL DEFAULT FALSE,                              -- programa EARN activado
+  earn_desde   TIMESTAMPTZ,                                                  -- fecha de activación EARN
+  updated_at   TIMESTAMPTZ NOT NULL DEFAULT NOW()
 );
 
 CREATE INDEX IF NOT EXISTS idx_wallets_user_id ON wallets(user_id);
@@ -85,10 +88,14 @@ CREATE TABLE IF NOT EXISTS transactions (
                        'carga_saldo',
                        'cashback',
                        'conversion_puntos',
-                       'conversion_megas'
+                       'conversion_megas',
+                       'cashin_qr',
+                       'swap_viva_usdt',
+                       'swap_usdt_viva',
+                       'earn_rendimiento'
                      )),
   monto              NUMERIC(12, 2) NOT NULL CHECK (monto > 0),
-  moneda             VARCHAR(10) NOT NULL DEFAULT 'BOB'
+  moneda             VARCHAR(10) NOT NULL DEFAULT '$VIVA'
                      CHECK (moneda IN ('BOB', '$VIVA', 'USDT')),
   puntos_generados   INTEGER NOT NULL DEFAULT 0,
   megas_generadas    NUMERIC(10, 3) NOT NULL DEFAULT 0,
@@ -156,7 +163,10 @@ SELECT
   u.modo_facil,
   w.saldo_bob,
   w.saldo_viva,
+  w.saldo_usdt,
   w.puntos,
+  w.earn_activo,
+  w.earn_desde,
   c.id                      AS card_id,
   c.numero_virtual,
   c.tier,
@@ -203,8 +213,8 @@ INSERT INTO users (nombre, ci, telefono, pin, kyc_nivel)
 SELECT 'Demo Pocket', '12345678', '70000001', '1234', 2
 WHERE NOT EXISTS (SELECT 1 FROM users WHERE ci = '12345678');
 
-INSERT INTO wallets (user_id, saldo_bob, saldo_viva, puntos)
-SELECT id, 500.00, 50.00000000, 1200
+INSERT INTO wallets (user_id, saldo_bob, saldo_viva, saldo_usdt, puntos, earn_activo)
+SELECT id, 0.00, 250.00000000, 50.00000000, 1200, TRUE
 FROM users WHERE ci = '12345678'
   AND NOT EXISTS (SELECT 1 FROM wallets w JOIN users u ON u.id = w.user_id WHERE u.ci = '12345678');
 

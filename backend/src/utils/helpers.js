@@ -3,6 +3,13 @@ const bcrypt = require('bcryptjs');
 const CONFIG = {
   nextRewardAt: 900,
   alvaToPocketRatio: 0.5,
+  // Pocket maneja $VIVA y USDT como saldos principales.
+  // El cash-in llega en BOB (QR interbancario) y se convierte a $VIVA al tipo de cambio simulado.
+  BOB_TO_VIVA_RATE: 0.14,  // 1 BOB = 0.14 $VIVA (demo fijo)
+  VIVA_TO_USDT_RATE: 0.01, // 1 $VIVA = 0.01 USDT (demo fijo)
+  SWAP_FEE: 0.02,           // 2% comisión en swap
+  EARN_APY: 0.20,           // 20% APY anual
+  EARN_MIN_VIVA: 200,       // mínimo 200 $VIVA para activar EARN
 };
 
 function generateCardNumber() {
@@ -36,6 +43,9 @@ async function hashPin(pin) {
 
 function mapUserHome(row) {
   if (!row) return null;
+  // saldo_bob = fondo de cash-in pendiente de conversión (normalmente 0 salvo en tránsito)
+  // saldo_viva = saldo principal en $VIVA (moneda operativa de Pocket)
+  // saldo_usdt = saldo en USDT
   return {
     id: row.user_id,
     phone: row.telefono,
@@ -43,8 +53,13 @@ function mapUserHome(row) {
     ci: row.ci,
     kyc_level: row.kyc_nivel,
     easy_mode: row.modo_facil,
-    bob_balance: parseFloat(row.saldo_bob ?? 0),
+    // fondo de cash-in en tránsito (BOB, se convierte a $VIVA al acreditarse)
+    bob_pending: parseFloat(row.saldo_bob ?? 0),
+    // saldos principales Pocket
     viva_balance: parseFloat(row.saldo_viva ?? 0),
+    usdt_balance: parseFloat(row.saldo_usdt ?? 0),
+    // alias legacy para compatibilidad con pantallas que aún usan bob_balance
+    bob_balance: parseFloat(row.saldo_bob ?? 0),
     alva_points: row.puntos ?? 0,
     pocket_points: row.puntos ?? 0,
     card_number: formatCardDisplay(row.numero_virtual),
@@ -60,6 +75,12 @@ function mapUserHome(row) {
     next_reward_at: CONFIG.nextRewardAt,
     megas_acumuladas: parseFloat(row.megas_acumuladas ?? 0),
     puntos_alva_omg: row.puntos_alva_omg ?? 0,
+    earn_activo: row.earn_activo ?? false,
+    earn_desde: row.earn_desde ?? null,
+    // tasas informativas para el frontend
+    bob_to_viva_rate: CONFIG.BOB_TO_VIVA_RATE,
+    viva_to_usdt_rate: CONFIG.VIVA_TO_USDT_RATE,
+    earn_apy: CONFIG.EARN_APY,
   };
 }
 
@@ -152,4 +173,7 @@ module.exports = {
   mapGiftCard,
   mapPointsLog,
   getNextReward,
+  bobToViva: (bob) => parseFloat((bob * CONFIG.BOB_TO_VIVA_RATE).toFixed(8)),
+  vivaToUsdt: (viva) => parseFloat((viva * CONFIG.VIVA_TO_USDT_RATE).toFixed(8)),
+  usdtToViva: (usdt) => parseFloat((usdt / CONFIG.VIVA_TO_USDT_RATE).toFixed(8)),
 };

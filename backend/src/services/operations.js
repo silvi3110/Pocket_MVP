@@ -1,6 +1,6 @@
 const { withTransaction } = require('../db');
 const { calcBenefits, convertAlvaToPocket } = require('./benefits');
-const { generateCardNumber, generateGiftCode } = require('../utils/helpers');
+const { generateCardNumber, generateGiftCode, CONFIG, bobToViva } = require('../utils/helpers');
 
 const BONO_VINCULACION_PUNTOS = 50;
 const LIMITE_BASIC = 2000;
@@ -68,15 +68,23 @@ async function processPayment(userId, { monto, tipo, comercio }) {
   });
 }
 
-/** §3.5 — Carga wallet → tarjeta (atómico) */
+/**
+ * §3.5 — Carga wallet → tarjeta (atómico).
+ * El monto se descuenta de saldo_viva (el saldo operativo de Pocket).
+ * La tarjeta Pocket Card opera en $VIVA — cuando el usuario "paga Bs X"
+ * el comercio recibe el equivalente, pero el saldo de la tarjeta es en $VIVA.
+ */
 async function loadCardFromWallet(userId, monto) {
   const amount = Number(monto);
   if (!amount || amount <= 0) throw new Error('Monto inválido');
 
   return withTransaction(async (client) => {
-    const walletR = await client.query('SELECT saldo_bob FROM wallets WHERE user_id = $1 FOR UPDATE', [userId]);
-    if (parseFloat(walletR.rows[0].saldo_bob) < amount) {
-      throw new Error('Saldo BOB insuficiente en wallet');
+    const walletR = await client.query(
+      'SELECT saldo_viva FROM wallets WHERE user_id = $1 FOR UPDATE',
+      [userId]
+    );
+    if (parseFloat(walletR.rows[0].saldo_viva) < amount) {
+      throw new Error('Saldo $VIVA insuficiente en wallet');
     }
 
     const cardR = await client.query('SELECT id, activa FROM cards WHERE user_id = $1 FOR UPDATE', [userId]);
@@ -84,7 +92,7 @@ async function loadCardFromWallet(userId, monto) {
       throw new Error('Activa tu Pocket Card antes de cargar saldo');
     }
 
-    await client.query('UPDATE wallets SET saldo_bob = saldo_bob - $1 WHERE user_id = $2', [amount, userId]);
+    await client.query('UPDATE wallets SET saldo_viva = saldo_viva - $1 WHERE user_id = $2', [amount, userId]);
     await client.query('UPDATE cards SET saldo_disponible = saldo_disponible + $1 WHERE user_id = $2', [
       amount,
       userId,
@@ -92,7 +100,7 @@ async function loadCardFromWallet(userId, monto) {
 
     const txR = await client.query(
       `INSERT INTO transactions (user_id, card_id, tipo, monto, moneda, puntos_generados, megas_generadas, cashback_viva)
-       VALUES ($1, $2, 'carga_saldo', $3, 'BOB', 0, 0, 0) RETURNING *`,
+       VALUES ($1, $2, 'carga_saldo', $3, '$VIVA', 0, 0, 0) RETURNING *`,
       [userId, cardR.rows[0].id, amount]
     );
 
@@ -100,13 +108,29 @@ async function loadCardFromWallet(userId, monto) {
   });
 }
 
-/** Simula ingreso de BOB a wallet (demo, sin pasarela) */
-async function simulateWalletDeposit(userId, monto) {
-  const amount = Number(monto);
-  if (!amount || amount <= 0) throw new Error('Monto inválido');
+/**
+ * Simula cash-in QR interbancario: el usuario paga BOB con QR bancario
+ * y Pocket lo convierte a $VIVA al tipo de cambio demo.
+ * En producción este flujo sería: QR → banco → webhook → acreditación en $VIVA.
+ */
+async function simulateWalletDeposit(userId, montoBob) {
+  const bob = Number(montoBob);
+  if (!bob || bob <= 0) throw new Error('Monto inválido');
+  if (bob > 5000) throw new Error('Monto máximo por transacción: Bs 5.000');
 
-  await withTransaction(async (client) => {
-    await client.query('UPDATE wallets SET saldo_bob = saldo_bob + $1 WHERE user_id = $2', [amount, userId]);
+  const vivaAcreditado = bobToViva(bob);
+
+  return withTransaction(async (client) => {
+    await client.query(
+      'UPDATE wallets SET saldo_viva = saldo_viva + $1 WHERE user_id = $2',
+      [vivaAcreditado, userId]
+    );
+    await client.query(
+      `INSERT INTO transactions (user_id, tipo, monto, moneda, puntos_generados, megas_generadas, cashback_viva)
+       VALUES ($1, 'cashin_qr', $2, 'BOB', 0, 0, 0)`,
+      [userId, bob]
+    );
+    return { bob_pagado: bob, viva_acreditado: vivaAcreditado, tasa: CONFIG.BOB_TO_VIVA_RATE };
   });
 }
 
@@ -248,6 +272,122 @@ async function linkVivaLine(userId, numeroLinea) {
   });
 }
 
+/**
+ * EARN — activar programa de rendimientos 20% APY sobre saldo $VIVA.
+ * Requisito: KYC aprobado + mínimo 200 $VIVA.
+ */
+async function activateEarn(userId) {
+  return withTransaction(async (client) => {
+    const userR = await client.query('SELECT kyc_nivel FROM users WHERE id = $1', [userId]);
+    if (userR.rows[0].kyc_nivel < 1) throw new Error('KYC requerido para activar EARN');
+
+    const walletR = await client.query(
+      'SELECT saldo_viva, earn_activo FROM wallets WHERE user_id = $1 FOR UPDATE',
+      [userId]
+    );
+    if (parseFloat(walletR.rows[0].saldo_viva) < CONFIG.EARN_MIN_VIVA) {
+      throw new Error(`Mínimo ${CONFIG.EARN_MIN_VIVA} $VIVA para activar EARN`);
+    }
+    if (walletR.rows[0].earn_activo) throw new Error('EARN ya está activo');
+
+    await client.query(
+      'UPDATE wallets SET earn_activo = TRUE, earn_desde = NOW() WHERE user_id = $1',
+      [userId]
+    );
+    return { earn_activo: true, apy: CONFIG.EARN_APY };
+  });
+}
+
+/**
+ * EARN — acreditar rendimiento simulado (cada 48 hs en producción).
+ * Para demo: acredita rendimiento proporcional al tiempo transcurrido desde earn_desde.
+ */
+async function acreditarEarn(userId) {
+  return withTransaction(async (client) => {
+    const walletR = await client.query(
+      'SELECT saldo_viva, earn_activo, earn_desde FROM wallets WHERE user_id = $1 FOR UPDATE',
+      [userId]
+    );
+    const w = walletR.rows[0];
+    if (!w.earn_activo) throw new Error('EARN no está activo');
+
+    const horasTranscurridas = w.earn_desde
+      ? (Date.now() - new Date(w.earn_desde).getTime()) / 3600000
+      : 48;
+    // Rendimiento proporcional: APY/365/24 * horas * saldo
+    const rendimiento = parseFloat(
+      (parseFloat(w.saldo_viva) * (CONFIG.EARN_APY / 365 / 24) * Math.min(horasTranscurridas, 48)).toFixed(8)
+    );
+
+    await client.query(
+      'UPDATE wallets SET saldo_viva = saldo_viva + $1, earn_desde = NOW() WHERE user_id = $2',
+      [rendimiento, userId]
+    );
+    await client.query(
+      `INSERT INTO transactions (user_id, tipo, monto, moneda, puntos_generados)
+       VALUES ($1, 'earn_rendimiento', $2, '$VIVA', 0)`,
+      [userId, rendimiento]
+    );
+    return { rendimiento, earn_apy: CONFIG.EARN_APY };
+  });
+}
+
+/** Swap $VIVA → USDT con comisión 2% */
+async function swapVivaToUsdt(userId, montoViva) {
+  const viva = Number(montoViva);
+  if (!viva || viva <= 0) throw new Error('Monto inválido');
+
+  return withTransaction(async (client) => {
+    const walletR = await client.query(
+      'SELECT saldo_viva FROM wallets WHERE user_id = $1 FOR UPDATE',
+      [userId]
+    );
+    if (parseFloat(walletR.rows[0].saldo_viva) < viva) throw new Error('Saldo $VIVA insuficiente');
+
+    const usdtBruto = viva * CONFIG.VIVA_TO_USDT_RATE;
+    const comision = usdtBruto * CONFIG.SWAP_FEE;
+    const usdtNeto = parseFloat((usdtBruto - comision).toFixed(8));
+
+    await client.query(
+      'UPDATE wallets SET saldo_viva = saldo_viva - $1, saldo_usdt = saldo_usdt + $2 WHERE user_id = $3',
+      [viva, usdtNeto, userId]
+    );
+    await client.query(
+      `INSERT INTO transactions (user_id, tipo, monto, moneda) VALUES ($1, 'swap_viva_usdt', $2, '$VIVA')`,
+      [userId, viva]
+    );
+    return { viva_enviado: viva, usdt_recibido: usdtNeto, comision_usdt: parseFloat(comision.toFixed(8)) };
+  });
+}
+
+/** Swap USDT → $VIVA con comisión 2% */
+async function swapUsdtToViva(userId, montoUsdt) {
+  const usdt = Number(montoUsdt);
+  if (!usdt || usdt <= 0) throw new Error('Monto inválido');
+
+  return withTransaction(async (client) => {
+    const walletR = await client.query(
+      'SELECT saldo_usdt FROM wallets WHERE user_id = $1 FOR UPDATE',
+      [userId]
+    );
+    if (parseFloat(walletR.rows[0].saldo_usdt) < usdt) throw new Error('Saldo USDT insuficiente');
+
+    const vivaBruto = usdt / CONFIG.VIVA_TO_USDT_RATE;
+    const comision = vivaBruto * CONFIG.SWAP_FEE;
+    const vivaNeto = parseFloat((vivaBruto - comision).toFixed(8));
+
+    await client.query(
+      'UPDATE wallets SET saldo_usdt = saldo_usdt - $1, saldo_viva = saldo_viva + $2 WHERE user_id = $3',
+      [usdt, vivaNeto, userId]
+    );
+    await client.query(
+      `INSERT INTO transactions (user_id, tipo, monto, moneda) VALUES ($1, 'swap_usdt_viva', $2, 'USDT')`,
+      [userId, usdt]
+    );
+    return { usdt_enviado: usdt, viva_recibido: vivaNeto, comision_viva: parseFloat(comision.toFixed(8)) };
+  });
+}
+
 /** Reset consumo mensual §3.8 */
 async function resetMonthlyConsumption() {
   const r = await withTransaction(async (client) => {
@@ -266,6 +406,10 @@ module.exports = {
   redeemGiftCard,
   linkVivaLine,
   resetMonthlyConsumption,
+  activateEarn,
+  acreditarEarn,
+  swapVivaToUsdt,
+  swapUsdtToViva,
   LIMITE_BASIC,
   LIMITE_VIVA,
 };
