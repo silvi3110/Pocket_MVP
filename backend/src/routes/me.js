@@ -50,6 +50,32 @@ router.post('/vincular-viva', async (req, res) => {
   }
 });
 
+// KYC nivel 1 — vinculación básica (registro sin fotos)
+// Se llama cuando el usuario solo se registra (ya ocurre en register si viva_linked)
+// o cuando vincula su línea VIVA desde el modal KYC
+router.post('/kyc-upgrade', async (req, res) => {
+  try {
+    const { rows } = await query('SELECT kyc_nivel FROM users WHERE id = $1', [req.user.id]);
+    const currentKyc = rows[0]?.kyc_nivel ?? 0;
+    if (currentKyc >= 1) {
+      // Si ya tiene nivel 1, intentar subir a nivel 2 (carnet + selfie completado)
+      if (currentKyc >= 2) {
+        return res.status(400).json({ error: 'KYC ya está completo (nivel 2)' });
+      }
+      await query('UPDATE users SET kyc_nivel = 2 WHERE id = $1', [req.user.id]);
+      // Actualizar límite de tarjeta si existe
+      await query('UPDATE cards SET limite_mensual = 999999 WHERE user_id = $1', [req.user.id]);
+      const home = await query('SELECT * FROM v_user_home WHERE user_id = $1', [req.user.id]);
+      return res.json({ message: 'KYC Nivel 2 completado — sin límite mensual', user: mapUserHome(home.rows[0]) });
+    }
+    await query('UPDATE users SET kyc_nivel = 1 WHERE id = $1', [req.user.id]);
+    const home = await query('SELECT * FROM v_user_home WHERE user_id = $1', [req.user.id]);
+    res.json({ message: 'KYC Nivel 1 completado — límite Bs 500/mes', user: mapUserHome(home.rows[0]) });
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
 router.get('/rewards', async (req, res) => {
   const r = await query(
     `SELECT r.*, g.nombre, g.valor_bob FROM rewards r

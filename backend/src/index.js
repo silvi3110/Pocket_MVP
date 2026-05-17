@@ -28,9 +28,11 @@ app.get('/health', (_, res) =>
 );
 
 const webDemoPath = path.join(__dirname, '..', '..', 'web-demo');
+// Servir Flutter desde raíz Y desde /app (base href="/" funciona en ambos casos)
+app.use(express.static(webDemoPath));
 app.use('/app', express.static(webDemoPath));
 app.get('/app', (_, res) => res.sendFile(path.join(webDemoPath, 'index.html')));
-app.get('/', (_, res) => res.redirect('/app'));
+app.get('/', (_, res) => res.sendFile(path.join(webDemoPath, 'index.html')));
 
 // Pagina QR para celular (misma Wi-Fi)
 app.get(['/celular', '/m'], (_, res) => {

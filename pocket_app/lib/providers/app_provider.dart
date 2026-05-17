@@ -20,6 +20,7 @@ class AppProvider extends ChangeNotifier {
   bool get isLoggedIn => api.token != null;
   bool get easyMode => user?['easy_mode'] == true;
   int get kycLevel => (user?['kyc_level'] as num?)?.toInt() ?? 0;
+  bool isNewUser = false;
 
   Future<void> init() async {
     final prefs = await SharedPreferences.getInstance();
@@ -74,6 +75,7 @@ class AppProvider extends ChangeNotifier {
       });
       await _saveToken(res['token']);
       _applyUser(res['user']);
+      isNewUser = true; // marca para mostrar el tour
       loading = false;
       notifyListeners();
       return true;
@@ -166,6 +168,19 @@ class AppProvider extends ChangeNotifier {
   Future<bool> upgradeKyc(int level) async {
     try {
       final res = await api.post('/api/auth/upgrade-kyc', {'level': level});
+      _applyUser(res['user']);
+      notifyListeners();
+      return true;
+    } catch (e) {
+      error = e.toString().replaceAll('Exception: ', '');
+      notifyListeners();
+      return false;
+    }
+  }
+
+  Future<bool> kycUpgrade() async {
+    try {
+      final res = await api.post('/api/me/kyc-upgrade', {});
       _applyUser(res['user']);
       notifyListeners();
       return true;

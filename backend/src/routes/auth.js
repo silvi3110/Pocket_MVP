@@ -35,14 +35,22 @@ router.post('/register', async (req, res) => {
     const telefono = phone || req.body.telefono;
     const name = nombre || full_name || 'Usuario Pocket';
 
-    if (!telefono || !pin || pin.length < 4) {
-      return res.status(400).json({ error: 'Teléfono y PIN (4 dígitos) requeridos' });
+    if (!pin || pin.length < 6) {
+      return res.status(400).json({ error: 'PIN de 6 dígitos requerido' });
     }
     if (!ci) return res.status(400).json({ error: 'CI requerido' });
+    // Teléfono es opcional — si no viene, generamos uno interno
+    const finalTelefono = telefono || `pocket_${Date.now()}`;
 
-    const exists = await query('SELECT id FROM users WHERE telefono = $1 OR ci = $2', [telefono, ci]);
+    const exists = await query('SELECT id FROM users WHERE ci = $1', [ci]);
     if (exists.rows.length) {
-      return res.status(409).json({ error: 'Teléfono o CI ya registrado' });
+      return res.status(409).json({ error: 'CI ya registrado' });
+    }
+    if (telefono) {
+      const phoneExists = await query('SELECT id FROM users WHERE telefono = $1', [telefono]);
+      if (phoneExists.rows.length) {
+        return res.status(409).json({ error: 'Teléfono ya registrado' });
+      }
     }
 
     const pinStored = await hashPin(pin);
@@ -50,7 +58,7 @@ router.post('/register', async (req, res) => {
     const userResult = await query(
       `INSERT INTO users (nombre, ci, telefono, pin, kyc_nivel)
        VALUES ($1, $2, $3, $4, 0) RETURNING id`,
-      [name, ci, telefono, pinStored]
+      [name, ci, finalTelefono, pinStored]
     );
     const userId = userResult.rows[0].id;
 
@@ -60,11 +68,11 @@ router.post('/register', async (req, res) => {
     );
 
     if (viva_linked) {
-      await linkVivaLine(userId, telefono);
+      await linkVivaLine(userId, finalTelefono);
     }
 
     const token = jwt.sign(
-      { id: userId, phone: telefono },
+      { id: userId, phone: finalTelefono },
       process.env.JWT_SECRET || 'pocket_hackathon_secret',
       { expiresIn: '7d' }
     );

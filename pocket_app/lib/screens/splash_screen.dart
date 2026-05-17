@@ -4,6 +4,7 @@ import '../core/constants/app_colors.dart';
 import '../providers/app_provider.dart';
 import 'login_screen.dart';
 import 'home_screen.dart';
+import 'welcome_screen.dart';
 
 class SplashScreen extends StatefulWidget {
   const SplashScreen({super.key});
@@ -25,7 +26,7 @@ class _SplashScreenState extends State<SplashScreen> {
     final provider = context.read<AppProvider>();
     Navigator.of(context).pushReplacement(
       MaterialPageRoute(
-        builder: (_) => provider.isLoggedIn ? const HomeScreen() : const LoginScreen(),
+        builder: (_) => provider.isLoggedIn ? const HomeScreen() : const WelcomeScreen(),
       ),
     );
   }

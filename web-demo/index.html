@@ -1,89 +1,26 @@
 <!DOCTYPE html>
 <html lang="es">
 <head>
-  <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover" />
-  <meta name="theme-color" content="#5C2FA0" />
-  <meta name="mobile-web-app-capable" content="yes" />
-  <meta name="apple-mobile-web-app-capable" content="yes" />
-  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
-  <meta name="apple-mobile-web-app-title" content="Pocket" />
+  <base href="/">
+
+  <meta charset="UTF-8">
+  <meta content="IE=Edge" http-equiv="X-UA-Compatible">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+  <meta name="description" content="Pocket Card — Hub financiero VIVA/ALVA">
+
+  <meta name="mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+  <meta name="apple-mobile-web-app-title" content="Pocket">
+  <meta name="theme-color" content="#7B2CBF">
+
+  <link rel="apple-touch-icon" href="icons/Icon-192.png">
+  <link rel="icon" type="image/png" href="favicon.png"/>
+  <link rel="manifest" href="manifest.json">
+
   <title>Pocket Card</title>
-  <link rel="manifest" href="manifest.json" />
-  <link rel="stylesheet" href="style.css" />
 </head>
 <body>
-  <header>
-    <h1>POCKET</h1>
-    <p>Hub Financiero VIVA · ALVA</p>
-  </header>
-
-  <section id="login-section" class="card">
-    <h2>Ingresar</h2>
-    <label>Teléfono<input id="phone" value="70000001" /></label>
-    <label>PIN<input id="pin" type="password" value="1234" /></label>
-    <button onclick="login()">Entrar</button>
-    <p class="hint">Demo: 70000001 / PIN 1234</p>
-  </section>
-
-  <section id="home-section" class="hidden">
-    <div id="kyc-badge" class="kyc">KYC 0</div>
-    <div id="insights-box" class="insights-box hidden"></div>
-    <div id="pocket-card" class="pocket-card"></div>
-    <div class="balances">
-      <div class="bal"><span>Wallet BOB</span><strong id="bob">0</strong></div>
-      <div class="bal"><span>$VIVA</span><strong id="viva">0</strong></div>
-      <div class="bal"><span>Puntos</span><strong id="pts">0</strong></div>
-    </div>
-    <div class="feature-strip">
-      <div class="feature-pill"><strong>Insights</strong> Alertas proactivas de gastos, $VIVA y EARN</div>
-      <div class="feature-pill"><strong>TATA</strong> Asistente en lenguaje natural</div>
-      <div class="feature-pill"><strong>Cachuchín</strong> Mascota que crece con tu uso</div>
-    </div>
-    <nav class="tabs">
-      <button type="button" class="tab active" data-tab="wallet" onclick="switchTab('wallet')">Wallet</button>
-      <button type="button" class="tab" data-tab="tata" onclick="switchTab('tata')">TATA</button>
-      <button type="button" class="tab" data-tab="mascota" onclick="switchTab('mascota')">Mascota</button>
-    </nav>
-    <div id="tab-wallet" class="tab-panel">
-      <div class="card">
-        <div class="actions">
-          <button onclick="deposit()">Cargar wallet +Bs 100</button>
-          <button class="secondary" onclick="loadCard()">Wallet → Tarjeta Bs 50</button>
-          <button onclick="pay()">Pagar QR Bs 20</button>
-          <button class="outline" onclick="convertAlva()">ALVA → Pocket</button>
-          <button class="outline" onclick="redeem()">Canjear Gift Card</button>
-        </div>
-      </div>
-    </div>
-    <div id="tab-tata" class="tab-panel hidden">
-      <div class="card tata-card">
-        <h3>TATA — Asistente financiero</h3>
-        <p class="tata-desc">Pregunta en lenguaje natural. Sin tecnicismos, con referencias locales.</p>
-        <div class="chips">
-          <button type="button" class="chip" onclick="askTata('¿Cómo voy este mes?')">¿Cómo voy este mes?</button>
-          <button type="button" class="chip" onclick="askTata('¿Me conviene convertir mis $VIVA ahora?')">¿Convertir $VIVA?</button>
-          <button type="button" class="chip" onclick="askTata('¿Puedo gastar Bs 150 en delivery?')">¿Bs 150 delivery?</button>
-        </div>
-        <div id="tata-reply" class="tata-reply">Hola, soy TATA. ¿En qué te ayudo?</div>
-        <label class="tata-input-row">
-          <input id="tata-msg" placeholder="Pregunta a TATA..." onkeydown="if(event.key==='Enter')sendTata()" />
-          <button type="button" onclick="sendTata()">Enviar</button>
-        </label>
-      </div>
-    </div>
-    <div id="tab-mascota" class="tab-panel hidden">
-      <div class="card mascota-card">
-        <div id="mascota-emoji" class="mascota-emoji">🐶</div>
-        <h3 id="mascota-nombre">Cachuchín</h3>
-        <p id="mascota-nivel">Nivel 1</p>
-        <div class="energy-bar"><div id="mascota-energy-fill"></div></div>
-        <p id="mascota-msg" class="mascota-msg"></p>
-        <p id="mascota-accesorios" class="mascota-acc"></p>
-      </div>
-    </div>
-    <pre id="log"></pre>
-  </section>
-  <script src="app.js"></script>
+  <script src="flutter_bootstrap.js" async></script>
 </body>
 </html>

@@ -3,8 +3,15 @@ const { calcBenefits, convertAlvaToPocket } = require('./benefits');
 const { generateCardNumber, generateGiftCode, CONFIG, bobToViva } = require('../utils/helpers');
 
 const BONO_VINCULACION_PUNTOS = 50;
-const LIMITE_BASIC = 2000;
-const LIMITE_VIVA = 5000;
+
+// Límites mensuales según KYC (aplica a TODOS los usuarios, VIVA o no)
+// KYC 1 (básico, sin fotos) → Bs 500/mes
+// KYC 2 (completo, carnet + selfie) → sin límite práctico
+const LIMITE_SIN_KYC_COMPLETO = 500;
+const LIMITE_KYC_COMPLETO = 999999;
+
+const LIMITE_BASIC = 500;  // compat legado
+const LIMITE_VIVA = 500;   // compat legado
 
 /** §3.4 — Pago con tarjeta (atómico) */
 async function processPayment(userId, { monto, tipo, comercio }) {
@@ -23,14 +30,16 @@ async function processPayment(userId, { monto, tipo, comercio }) {
     if (parseFloat(card.saldo_disponible) < amount) {
       throw new Error('Saldo de tarjeta insuficiente. Carga saldo desde tu wallet.');
     }
-    if (parseFloat(card.consumo_mes) + amount > parseFloat(card.limite_mensual)) {
-      throw new Error('Límite mensual de tarjeta excedido');
-    }
-
     const kyc = userR.rows[0].kyc_nivel;
-    if (kyc < 1) throw new Error('KYC Nivel 1 requerido para pagar');
-    if (card.tier === 'viva' && kyc < 2) {
-      throw new Error('KYC Nivel 2 requerido para pagar con tarjeta tier VIVA');
+    if (kyc < 1) throw new Error('Completa tu verificación para pagar con Pocket Card');
+
+    // Límite mensual según KYC — aplica a VIVA y no-VIVA por igual
+    const limiteAplicable = kyc >= 2 ? LIMITE_KYC_COMPLETO : LIMITE_SIN_KYC_COMPLETO;
+    if (parseFloat(card.consumo_mes) + amount > limiteAplicable) {
+      if (kyc < 2) {
+        throw new Error(`Límite mensual Bs ${LIMITE_SIN_KYC_COMPLETO} alcanzado. Completa tu KYC (carnet + selfie) para sin límite.`);
+      }
+      throw new Error('Límite mensual de tarjeta excedido');
     }
 
     const benefits = calcBenefits(amount, card.tier);
@@ -134,24 +143,30 @@ async function simulateWalletDeposit(userId, montoBob) {
   });
 }
 
-/** §3.2 — Activar / crear tarjeta */
+/** §3.2 — Activar / crear tarjeta
+ * Cualquier usuario con KYC ≥ 1 puede activar.
+ * Tier VIVA → tiene viva_link (línea VIVA vinculada): 2pts, megas, cashback
+ * Tier Basic → no tiene línea VIVA: 1pt, sin megas, sin cashback
+ * El límite mensual efectivo lo determina el KYC, no el tier.
+ */
 async function activateCard(userId) {
   return withTransaction(async (client) => {
     const userR = await client.query('SELECT kyc_nivel FROM users WHERE id = $1', [userId]);
     if (userR.rows[0].kyc_nivel < 1) {
-      throw new Error('KYC Nivel 1 requerido. Vincula tu línea VIVA primero.');
+      throw new Error('Necesitas completar la verificación básica para activar tu tarjeta.');
     }
 
     const vivaR = await client.query('SELECT 1 FROM viva_link WHERE user_id = $1', [userId]);
     const tier = vivaR.rows.length ? 'viva' : 'basic';
-    const limite = tier === 'viva' ? LIMITE_VIVA : LIMITE_BASIC;
+    // El límite en la tabla es referencial; el límite real se calcula en processPayment por KYC
+    const limiteRef = LIMITE_SIN_KYC_COMPLETO;
 
     const existing = await client.query('SELECT id FROM cards WHERE user_id = $1', [userId]);
 
     if (existing.rows.length) {
       const r = await client.query(
         `UPDATE cards SET activa = TRUE, tier = $1, limite_mensual = $2 WHERE user_id = $3 RETURNING *`,
-        [tier, limite, userId]
+        [tier, limiteRef, userId]
       );
       return r.rows[0];
     }
@@ -159,7 +174,7 @@ async function activateCard(userId) {
     const r = await client.query(
       `INSERT INTO cards (user_id, numero_virtual, tier, saldo_disponible, limite_mensual, activa)
        VALUES ($1, $2, $3, 0, $4, TRUE) RETURNING *`,
-      [userId, generateCardNumber(), tier, limite]
+      [userId, generateCardNumber(), tier, limiteRef]
     );
     return r.rows[0];
   });

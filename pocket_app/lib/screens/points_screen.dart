@@ -77,24 +77,8 @@ class _PointsScreenState extends State<PointsScreen> {
           ),
           const SizedBox(height: 16),
 
-          // ── Cómo se ganan ────────────────────────────────────────
-          Container(
-            padding: const EdgeInsets.all(14),
-            decoration: BoxDecoration(
-              color: AppColors.purpleLight,
-              borderRadius: BorderRadius.circular(14),
-            ),
-            child: const Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text('¿Cómo ganar puntos Pocket?', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 14)),
-                SizedBox(height: 8),
-                _Bullet('Pagando con tu Pocket Card (1–2 pts/\$VIVA según tier)'),
-                _Bullet('Navegando en ALVA / Viva App — los mismos puntos'),
-                _Bullet('Canjeables por Gift Cards, megas o marketplace ALVA'),
-              ],
-            ),
-          ),
+          // ── Contexto VIVA vs no-VIVA ─────────────────────────────
+          _PointsContextCard(provider: provider),
           const SizedBox(height: 20),
 
           // ── Catálogo Gift Cards ──────────────────────────────────
@@ -228,6 +212,194 @@ class _PointsScreenState extends State<PointsScreen> {
       ),
     );
   }
+}
+
+class _PointsContextCard extends StatelessWidget {
+  final AppProvider provider;
+  const _PointsContextCard({required this.provider});
+
+  @override
+  Widget build(BuildContext context) {
+    final isViva = provider.user?['viva_line'] != null ||
+        (provider.user?['tier'] as String? ?? '') == 'viva';
+    final kyc = (provider.user?['kyc_level'] as num?)?.toInt() ?? 0;
+
+    return Column(
+      children: [
+        // Card cómo se ganan
+        Container(
+          padding: const EdgeInsets.all(16),
+          decoration: BoxDecoration(
+            color: AppColors.purpleLight,
+            borderRadius: BorderRadius.circular(14),
+            border: Border.all(color: AppColors.purple.withValues(alpha: 0.2)),
+          ),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              const Text('¿Cómo ganar Puntos Pocket?',
+                style: TextStyle(fontWeight: FontWeight.bold, fontSize: 14, color: AppColors.textDark)),
+              const SizedBox(height: 10),
+              _Bullet(isViva
+                ? 'Pagando con Pocket Card — 2 pts por cada \$VIVA gastado (tier VIVA)'
+                : 'Pagando con Pocket Card — 1 pt por cada \$VIVA gastado (tier Basic)'),
+              _Bullet(isViva
+                ? 'Navegando en ALVA / Viva App — los mismos puntos se acumulan aquí'
+                : 'Los puntos se acumulan en Pocket para canjear Gift Cards'),
+              if (!isViva)
+                _Bullet('Vincula tu línea VIVA para ganar el doble de puntos y usarlos en Viva App'),
+            ],
+          ),
+        ),
+        const SizedBox(height: 12),
+
+        // Card dónde canjear
+        Container(
+          padding: const EdgeInsets.all(16),
+          decoration: BoxDecoration(
+            color: AppColors.white,
+            borderRadius: BorderRadius.circular(14),
+            border: Border.all(color: AppColors.purple.withValues(alpha: 0.15)),
+          ),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              const Text('¿Dónde canjear tus puntos?',
+                style: TextStyle(fontWeight: FontWeight.bold, fontSize: 14, color: AppColors.textDark)),
+              const SizedBox(height: 10),
+              _CanjeRow(
+                icon: Icons.card_giftcard_rounded,
+                color: AppColors.gold,
+                title: 'Gift Cards en Pocket',
+                subtitle: 'Disponible para todos los usuarios',
+                available: true,
+              ),
+              const SizedBox(height: 8),
+              _CanjeRow(
+                icon: Icons.wifi_rounded,
+                color: AppColors.purple,
+                title: 'Bolsas y minutos en Viva App',
+                subtitle: isViva
+                  ? 'Disponible — tienes línea VIVA vinculada'
+                  : 'Solo para clientes VIVA con línea activa',
+                available: isViva,
+              ),
+              const SizedBox(height: 8),
+              _CanjeRow(
+                icon: Icons.storefront_rounded,
+                color: AppColors.purple,
+                title: 'Marketplace ALVA',
+                subtitle: isViva
+                  ? 'Disponible en la app ALVA'
+                  : 'Solo para clientes VIVA',
+                available: isViva,
+              ),
+              if (!isViva) ...[
+                const SizedBox(height: 12),
+                Container(
+                  padding: const EdgeInsets.all(12),
+                  decoration: BoxDecoration(
+                    color: AppColors.purpleLight,
+                    borderRadius: BorderRadius.circular(10),
+                  ),
+                  child: Row(children: [
+                    const Icon(Icons.info_outline_rounded, color: AppColors.purple, size: 16),
+                    const SizedBox(width: 8),
+                    const Expanded(child: Text(
+                      'Vincula tu línea VIVA desde Mi VIVA para desbloquear todos los canjes.',
+                      style: TextStyle(color: AppColors.purple, fontSize: 12),
+                    )),
+                  ]),
+                ),
+              ],
+            ],
+          ),
+        ),
+        const SizedBox(height: 12),
+
+        // Card límite KYC
+        Container(
+          padding: const EdgeInsets.all(16),
+          decoration: BoxDecoration(
+            color: kyc >= 2
+              ? AppColors.lime.withValues(alpha: 0.08)
+              : AppColors.white,
+            borderRadius: BorderRadius.circular(14),
+            border: Border.all(
+              color: kyc >= 2
+                ? AppColors.greenDark.withValues(alpha: 0.3)
+                : AppColors.purple.withValues(alpha: 0.15),
+            ),
+          ),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Row(children: [
+                Icon(
+                  kyc >= 2 ? Icons.verified_rounded : Icons.lock_outline_rounded,
+                  color: kyc >= 2 ? AppColors.greenDark : AppColors.purple,
+                  size: 18,
+                ),
+                const SizedBox(width: 8),
+                Text(
+                  kyc >= 2 ? 'KYC Completo — Sin límite' : 'KYC Básico — Límite Bs 500/mes',
+                  style: TextStyle(
+                    fontWeight: FontWeight.bold, fontSize: 14,
+                    color: kyc >= 2 ? AppColors.greenDark : AppColors.textDark,
+                  ),
+                ),
+              ]),
+              const SizedBox(height: 8),
+              Text(
+                kyc >= 2
+                  ? 'Tu identidad está completamente verificada. Sin restricciones de monto.'
+                  : 'Sube tu carnet de identidad y selfie para eliminar el límite mensual de tu Pocket Card.',
+                style: const TextStyle(color: AppColors.textMuted, fontSize: 12),
+              ),
+            ],
+          ),
+        ),
+      ],
+    );
+  }
+}
+
+class _CanjeRow extends StatelessWidget {
+  final IconData icon;
+  final Color color;
+  final String title, subtitle;
+  final bool available;
+  const _CanjeRow({required this.icon, required this.color, required this.title, required this.subtitle, required this.available});
+
+  @override
+  Widget build(BuildContext context) => Row(
+    children: [
+      Container(
+        width: 36, height: 36,
+        decoration: BoxDecoration(
+          color: available ? color.withValues(alpha: 0.12) : AppColors.background,
+          borderRadius: BorderRadius.circular(8),
+        ),
+        child: Icon(icon, color: available ? color : AppColors.textMuted, size: 18),
+      ),
+      const SizedBox(width: 10),
+      Expanded(child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Text(title, style: TextStyle(
+            fontSize: 13, fontWeight: FontWeight.w600,
+            color: available ? AppColors.textDark : AppColors.textMuted,
+          )),
+          Text(subtitle, style: const TextStyle(fontSize: 11, color: AppColors.textMuted)),
+        ],
+      )),
+      Icon(
+        available ? Icons.check_circle_rounded : Icons.lock_outline_rounded,
+        color: available ? AppColors.greenDark : AppColors.textMuted,
+        size: 18,
+      ),
+    ],
+  );
 }
 
 class _Bullet extends StatelessWidget {
