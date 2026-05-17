@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:qr_flutter/qr_flutter.dart';
 import '../core/constants/app_colors.dart';
 import '../providers/app_provider.dart';
+import 'pay_screen.dart';
 import 'points_screen.dart';
 import 'viva_screen.dart';
 
@@ -113,6 +114,23 @@ class WalletPanel extends StatelessWidget {
             ],
           ),
         ),
+        const SizedBox(height: 12),
+
+        // ── Pagar con QR ────────────────────────────────────────
+        SizedBox(
+          width: double.infinity,
+          child: ElevatedButton.icon(
+            onPressed: () => Navigator.push(context, MaterialPageRoute(builder: (_) => const PayScreen(type: 'qr'))),
+            icon: const Icon(Icons.qr_code_scanner_rounded, size: 20),
+            label: const Text('Pagar con QR', style: TextStyle(fontWeight: FontWeight.bold)),
+            style: ElevatedButton.styleFrom(
+              backgroundColor: AppColors.purple,
+              foregroundColor: AppColors.white,
+              padding: const EdgeInsets.symmetric(vertical: 14),
+              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+            ),
+          ),
+        ),
         const SizedBox(height: 16),
 
         // ── Accesos rápidos ─────────────────────────────────────
@@ -136,18 +154,6 @@ class WalletPanel extends StatelessWidget {
                     onTap: () => Navigator.push(context, MaterialPageRoute(builder: (_) => const VivaScreen()))),
                   _QuickAction(icon: Icons.stars_rounded, label: 'Puntos', color: AppColors.gold,
                     onTap: () => Navigator.push(context, MaterialPageRoute(builder: (_) => const PointsScreen()))),
-                  _QuickAction(icon: Icons.card_giftcard_rounded, label: 'Gift Card', color: AppColors.green,
-                    onTap: () async {
-                      await provider.loadGiftCards();
-                      if (provider.giftCards.isEmpty) return;
-                      final res = await provider.redeemGiftCard(provider.giftCards.first['id'].toString());
-                      if (context.mounted) {
-                        ScaffoldMessenger.of(context).showSnackBar(SnackBar(
-                          content: Text(res != null ? 'Gift Card canjeada' : provider.error ?? 'Error'),
-                          backgroundColor: res != null ? AppColors.greenDark : Colors.red,
-                        ));
-                      }
-                    }),
                 ],
               ),
             ],

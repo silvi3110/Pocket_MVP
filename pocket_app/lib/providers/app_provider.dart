@@ -309,6 +309,26 @@ class AppProvider extends ChangeNotifier {
     await refreshProfile();
   }
 
+  Future<bool> feedMascota() async {
+    try {
+      await api.post('/api/mascota/feed');
+      await loadMascota();
+      return true;
+    } catch (_) {
+      return false;
+    }
+  }
+
+  Future<bool> playWithMascota() async {
+    try {
+      await api.post('/api/mascota/play');
+      await loadMascota();
+      return true;
+    } catch (_) {
+      return false;
+    }
+  }
+
   // ── EARN ──────────────────────────────────────────────────────────
 
   Future<Map<String, dynamic>?> earnStatus() async {

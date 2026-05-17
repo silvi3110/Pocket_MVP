@@ -86,8 +86,9 @@ ${txLines}
 ${ptsLines}
 
 TASAS DEMO ACTUALES:
-- 1 Bs = 0.14 $VIVA (cash-in QR interbancario)
-- 1 $VIVA = 0.01 USDT
+- 1 Bs = 1879.699 $VIVA (cash-in QR interbancario)
+- 1 $VIVA = 0.00005485 USDT
+- 1 USDT = 9.7 BOB
 - Swap fee: 2%
 - EARN mínimo: 200 $VIVA
 

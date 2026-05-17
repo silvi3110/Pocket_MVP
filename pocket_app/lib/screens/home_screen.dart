@@ -1,4 +1,5 @@
 import 'dart:async';
+import 'dart:ui';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:provider/provider.dart';
@@ -159,7 +160,7 @@ class _HomeScreenState extends State<HomeScreen> {
     const items = [
       BottomNavigationBarItem(icon: Icon(Icons.home_outlined), activeIcon: Icon(Icons.home_rounded), label: 'Inicio'),
       BottomNavigationBarItem(icon: Icon(Icons.credit_card_outlined), activeIcon: Icon(Icons.credit_card_rounded), label: 'Tarjeta'),
-      BottomNavigationBarItem(icon: Icon(Icons.card_giftcard_outlined), activeIcon: Icon(Icons.card_giftcard_rounded), label: 'Beneficios'),
+      BottomNavigationBarItem(icon: Icon(Icons.stars_outlined), activeIcon: Icon(Icons.stars_rounded), label: 'Puntos'),
       BottomNavigationBarItem(icon: Icon(Icons.smart_toy_outlined), activeIcon: Icon(Icons.smart_toy_rounded), label: 'TATA'),
     ];
 
@@ -191,6 +192,7 @@ class _InicioTab extends StatefulWidget {
 
 class _InicioTabState extends State<_InicioTab> {
   bool _showViva = true; // toggle $VIVA / USDT
+  bool _balanceVisible = false;
 
   AppProvider get p => widget.provider;
 
@@ -203,8 +205,8 @@ class _InicioTabState extends State<_InicioTab> {
     final kyc = (u?['kyc_level'] as num?)?.toInt() ?? 0;
     final earnActivo = u?['earn_activo'] as bool? ?? false;
     final cardStatus = u?['card_status'] as String? ?? 'none';
-    final tasa = (u?['bob_to_viva_rate'] as num?)?.toDouble() ?? 0.14;
-    final vivaToUsdt = (u?['viva_to_usdt_rate'] as num?)?.toDouble() ?? 0.01;
+    final tasa = (u?['bob_to_viva_rate'] as num?)?.toDouble() ?? 1879.699;
+    final vivaToUsdt = (u?['viva_to_usdt_rate'] as num?)?.toDouble() ?? 0.00005485;
 
     final displayBalance = _showViva ? viva : usdt;
     final valorBob = _showViva ? viva / tasa : usdt / vivaToUsdt / tasa;
@@ -266,7 +268,10 @@ class _InicioTabState extends State<_InicioTab> {
                 const SizedBox(height: 16),
 
                 // Balance grande (estilo app original)
-                const Text('Tus VIVA', style: TextStyle(color: AppColors.textMuted, fontSize: 13)),
+                Text(
+                  _showViva ? 'Tus \$VIVA' : 'Tu USDT',
+                  style: const TextStyle(color: AppColors.textMuted, fontSize: 13),
+                ),
                 const SizedBox(height: 6),
                 Row(
                   crossAxisAlignment: CrossAxisAlignment.center,
@@ -281,26 +286,55 @@ class _InicioTabState extends State<_InicioTab> {
                     ),
                     const SizedBox(width: 8),
                     Expanded(
-                      child: Text(
-                        displayBalance.toStringAsFixed(6),
-                        style: const TextStyle(
-                          fontSize: 32,
-                          fontWeight: FontWeight.bold,
-                          color: AppColors.textDark,
-                          letterSpacing: -0.5,
+                      child: ClipRect(
+                        child: Stack(
+                          children: [
+                            Text(
+                              displayBalance.toStringAsFixed(6),
+                              style: const TextStyle(
+                                fontSize: 32,
+                                fontWeight: FontWeight.bold,
+                                color: AppColors.textDark,
+                                letterSpacing: -0.5,
+                              ),
+                              overflow: TextOverflow.ellipsis,
+                            ),
+                            if (!_balanceVisible)
+                              Positioned.fill(
+                                child: BackdropFilter(
+                                  filter: ImageFilter.blur(sigmaX: 8, sigmaY: 8),
+                                  child: const SizedBox.expand(),
+                                ),
+                              ),
+                          ],
                         ),
-                        overflow: TextOverflow.ellipsis,
                       ),
                     ),
                     IconButton(
-                      icon: const Icon(Icons.remove_red_eye_outlined, color: AppColors.textMuted),
-                      onPressed: () {},
+                      icon: Icon(
+                        _balanceVisible ? Icons.remove_red_eye_outlined : Icons.visibility_off_outlined,
+                        color: AppColors.textMuted,
+                      ),
+                      onPressed: () => setState(() => _balanceVisible = !_balanceVisible),
                     ),
                   ],
                 ),
-                Text(
-                  'Valor estimado en BOB ${valorBob.toStringAsFixed(2)}',
-                  style: const TextStyle(color: AppColors.textMuted, fontSize: 12),
+                ClipRect(
+                  child: Stack(
+                    children: [
+                      Text(
+                        'Valor estimado en BOB ${valorBob.toStringAsFixed(2)}',
+                        style: const TextStyle(color: AppColors.textMuted, fontSize: 12),
+                      ),
+                      if (!_balanceVisible)
+                        Positioned.fill(
+                          child: BackdropFilter(
+                            filter: ImageFilter.blur(sigmaX: 6, sigmaY: 6),
+                            child: const SizedBox.expand(),
+                          ),
+                        ),
+                    ],
+                  ),
                 ),
                 const SizedBox(height: 20),
 
@@ -323,7 +357,9 @@ class _InicioTabState extends State<_InicioTab> {
                     const SizedBox(width: 12),
                     Expanded(
                       child: OutlinedButton.icon(
-                        onPressed: () {},
+                        onPressed: () => ScaffoldMessenger.of(context).showSnackBar(
+                          const SnackBar(content: Text('Función disponible próximamente')),
+                        ),
                         icon: const Icon(Icons.north_east_rounded, size: 18),
                         label: const Text('Retirar', style: TextStyle(fontWeight: FontWeight.bold)),
                         style: OutlinedButton.styleFrom(
@@ -343,7 +379,7 @@ class _InicioTabState extends State<_InicioTab> {
           const SizedBox(height: 8),
 
           // ── Card EARN / Ganancias (estilo original) ──────────────
-          _EarnCard(earnActivo: earnActivo, viva: viva, provider: p),
+          _EarnCard(earnActivo: earnActivo, viva: viva, provider: p, showDetail: true),
 
           const SizedBox(height: 8),
 
@@ -377,8 +413,6 @@ class _InicioTabState extends State<_InicioTab> {
                     _QuickBtn(icon: Icons.signal_cellular_alt_rounded, label: 'Mi VIVA', small: true,
                       onTap: () => Navigator.push(context, MaterialPageRoute(builder: (_) => const VivaScreen()))),
                     _QuickBtn(icon: Icons.storefront_rounded, label: 'Marketplace', small: true, onTap: () {}),
-                    _QuickBtn(icon: Icons.card_giftcard_rounded, label: 'Gift Cards', small: true,
-                      onTap: () => Navigator.push(context, MaterialPageRoute(builder: (_) => const PointsScreen()))),
                     _QuickBtn(icon: Icons.pets_rounded, label: 'Mascota', small: true,
                       onTap: () => Navigator.push(context, MaterialPageRoute(builder: (_) => const _MascotaPage()))),
                   ],
@@ -490,7 +524,7 @@ class _SwapPage extends StatelessWidget {
     final u = p.user;
     final viva = (u?['viva_balance'] as num?)?.toDouble() ?? 0;
     final usdt = (u?['usdt_balance'] as num?)?.toDouble() ?? 0;
-    final rate = (u?['viva_to_usdt_rate'] as num?)?.toDouble() ?? 0.01;
+    final rate = (u?['viva_to_usdt_rate'] as num?)?.toDouble() ?? 0.00005485;
 
     return ListView(
       padding: const EdgeInsets.all(16),
@@ -675,12 +709,13 @@ class _CardPage extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final u = p.user;
-    final viva = (u?['viva_balance'] as num?)?.toDouble() ?? 0;
+    final usdt = (u?['usdt_balance'] as num?)?.toDouble() ?? 0;
     final cardBalance = (u?['card_balance'] as num?)?.toDouble() ?? 0;
     final cardStatus = u?['card_status'] as String? ?? 'none';
     final tier = u?['tier'] as String? ?? 'basic';
     final cardNumber = u?['card_number'] as String? ?? '—';
     final active = cardStatus == 'active';
+    final vivaToUsdt = (u?['viva_to_usdt_rate'] as num?)?.toDouble() ?? 0.00005485;
 
     return ListView(
       padding: const EdgeInsets.all(16),
@@ -702,7 +737,7 @@ class _CardPage extends StatelessWidget {
                 _SectionTitle('¿Cómo activar tu Pocket Card?'),
                 SizedBox(height: 10),
                 _Bullet('Completa la verificación básica (KYC Nivel 1)'),
-                _Bullet(r'Disponible para todos — clientes VIVA y no-VIVA'),
+                _Bullet('Disponible para todos — clientes VIVA y no-VIVA'),
                 _Bullet('La tarjeta virtual se activa al instante, gratis'),
               ],
             ),
@@ -728,9 +763,14 @@ class _CardPage extends StatelessWidget {
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                const _SectionTitle(r'Cargar desde wallet $VIVA'),
-                const SizedBox(height: 10),
-                _LoadCardInline(viva: viva, p: p),
+                const _SectionTitle('Cargar USDT a la tarjeta'),
+                const SizedBox(height: 4),
+                const Text(
+                  'La Pocket Card opera en USDT. Transfiere desde tu wallet.',
+                  style: TextStyle(color: AppColors.textMuted, fontSize: 11),
+                ),
+                const SizedBox(height: 12),
+                _LoadCardInline(usdt: usdt, p: p, vivaToUsdt: vivaToUsdt),
               ],
             ),
           ),
@@ -759,16 +799,17 @@ class _CardPage extends StatelessWidget {
 }
 
 class _LoadCardInline extends StatefulWidget {
-  final double viva;
+  final double usdt;
+  final double vivaToUsdt;
   final AppProvider p;
-  const _LoadCardInline({required this.viva, required this.p});
+  const _LoadCardInline({required this.usdt, required this.p, required this.vivaToUsdt});
 
   @override
   State<_LoadCardInline> createState() => _LoadCardInlineState();
 }
 
 class _LoadCardInlineState extends State<_LoadCardInline> {
-  final _ctrl = TextEditingController(text: '20');
+  final _ctrl = TextEditingController(text: '10');
   bool _loading = false;
 
   @override
@@ -779,17 +820,44 @@ class _LoadCardInlineState extends State<_LoadCardInline> {
     final monto = double.tryParse(_ctrl.text) ?? 0;
     return Column(
       children: [
-        Text('Disponible: ${widget.viva.toStringAsFixed(4)} \$VIVA',
-          style: const TextStyle(color: AppColors.textMuted, fontSize: 12)),
+        Row(
+          mainAxisAlignment: MainAxisAlignment.spaceBetween,
+          children: [
+            Text('Disponible: ${widget.usdt.toStringAsFixed(4)} USDT',
+              style: const TextStyle(color: AppColors.textMuted, fontSize: 12)),
+            // botones rápido 25% / 50% / Máx
+            Row(children: [
+              for (final pct in [0.5, 1.0])
+                GestureDetector(
+                  onTap: () => setState(() => _ctrl.text = (widget.usdt * pct).toStringAsFixed(4)),
+                  child: Container(
+                    margin: const EdgeInsets.only(left: 6),
+                    padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
+                    decoration: BoxDecoration(
+                      color: AppColors.purpleLight,
+                      borderRadius: BorderRadius.circular(6),
+                    ),
+                    child: Text(pct == 1.0 ? 'Máx' : '50%',
+                      style: const TextStyle(color: AppColors.purple, fontSize: 10, fontWeight: FontWeight.w600)),
+                  ),
+                ),
+            ]),
+          ],
+        ),
         const SizedBox(height: 8),
         TextField(
           controller: _ctrl,
           keyboardType: TextInputType.number,
           onChanged: (_) => setState(() {}),
           decoration: InputDecoration(
-            labelText: r'Monto $VIVA a cargar',
-            prefixText: r'$VIVA ',
+            labelText: 'Monto USDT a cargar',
+            prefixText: 'USDT ',
+            errorText: monto > widget.usdt ? 'Saldo insuficiente' : null,
             border: OutlineInputBorder(borderRadius: BorderRadius.circular(10)),
+            focusedBorder: OutlineInputBorder(
+              borderRadius: BorderRadius.circular(10),
+              borderSide: const BorderSide(color: AppColors.purple, width: 2),
+            ),
             contentPadding: const EdgeInsets.symmetric(horizontal: 12, vertical: 12),
           ),
         ),
@@ -797,10 +865,11 @@ class _LoadCardInlineState extends State<_LoadCardInline> {
         SizedBox(
           width: double.infinity, height: 44,
           child: ElevatedButton(
-            onPressed: _loading || monto <= 0 || monto > widget.viva ? null : () async {
+            onPressed: _loading || monto <= 0 || monto > widget.usdt ? null : () async {
               setState(() => _loading = true);
-              final ok = await widget.p.loadCardFromWallet(monto);
-              if (context.mounted) _snack(context, ok ? r'Saldo cargado en Pocket Card' : widget.p.error ?? 'Error', ok);
+              // USDT → tarjeta: convertimos a $VIVA equivalente para la API
+              final ok = await widget.p.loadCardFromWallet(monto / widget.vivaToUsdt);
+              if (context.mounted) _snack(context, ok ? 'USDT cargado en Pocket Card' : widget.p.error ?? 'Error', ok);
               setState(() => _loading = false);
             },
             style: ElevatedButton.styleFrom(
@@ -809,7 +878,7 @@ class _LoadCardInlineState extends State<_LoadCardInline> {
             ),
             child: _loading
                 ? const SizedBox(width: 20, height: 20, child: CircularProgressIndicator(color: AppColors.white, strokeWidth: 2))
-                : const Text(r'Cargar $VIVA a tarjeta', style: TextStyle(fontWeight: FontWeight.bold)),
+                : const Text('Cargar USDT a tarjeta', style: TextStyle(fontWeight: FontWeight.bold)),
           ),
         ),
       ],
@@ -834,19 +903,41 @@ class _EarnCard extends StatefulWidget {
 
 class _EarnCardState extends State<_EarnCard> {
   late Timer _timer;
-  Duration _countdown = const Duration(hours: 48);
+  DateTime? _earnStart;
+  Duration _countdown = Duration.zero;
 
   @override
   void initState() {
     super.initState();
+    _initCountdown();
     _timer = Timer.periodic(const Duration(seconds: 1), (_) {
       if (!mounted) return;
-      setState(() {
-        if (_countdown.inSeconds > 0) {
-          _countdown = _countdown - const Duration(seconds: 1);
-        }
-      });
+      if (widget.earnActivo && _earnStart != null) {
+        final elapsed = DateTime.now().difference(_earnStart!);
+        final remaining = const Duration(hours: 48) - elapsed;
+        setState(() => _countdown = remaining.isNegative ? Duration.zero : remaining);
+      }
     });
+  }
+
+  void _initCountdown() {
+    if (widget.earnActivo) {
+      _earnStart = DateTime.now();
+      _countdown = const Duration(hours: 48);
+    } else {
+      _countdown = Duration.zero;
+    }
+  }
+
+  @override
+  void didUpdateWidget(_EarnCard oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    if (widget.earnActivo && !oldWidget.earnActivo) {
+      _earnStart = DateTime.now();
+      _countdown = const Duration(hours: 48);
+    } else if (!widget.earnActivo) {
+      _countdown = Duration.zero;
+    }
   }
 
   @override
@@ -907,31 +998,32 @@ class _EarnCardState extends State<_EarnCard> {
           ),
           const SizedBox(height: 8),
 
-          // Countdown (estilo original)
-          Center(
-            child: Column(
-              children: [
-                const Text('Se te abonará en:', style: TextStyle(color: AppColors.textMuted, fontSize: 12)),
-                const SizedBox(height: 6),
-                Row(
-                  mainAxisAlignment: MainAxisAlignment.center,
-                  children: [
-                    _CountdownUnit(value: _fmt(h), label: 'Hrs'),
-                    const Padding(
-                      padding: EdgeInsets.symmetric(horizontal: 4),
-                      child: Text(':', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 20, color: AppColors.textDark)),
-                    ),
-                    _CountdownUnit(value: _fmt(m), label: 'Min'),
-                    const Padding(
-                      padding: EdgeInsets.symmetric(horizontal: 4),
-                      child: Text(':', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 20, color: AppColors.textDark)),
-                    ),
-                    _CountdownUnit(value: _fmt(s), label: 'Secs'),
-                  ],
-                ),
-              ],
+          // Countdown (solo cuando earnActivo)
+          if (widget.earnActivo)
+            Center(
+              child: Column(
+                children: [
+                  const Text('Se te abonará en:', style: TextStyle(color: AppColors.textMuted, fontSize: 12)),
+                  const SizedBox(height: 6),
+                  Row(
+                    mainAxisAlignment: MainAxisAlignment.center,
+                    children: [
+                      _CountdownUnit(value: _fmt(h), label: 'Hrs'),
+                      const Padding(
+                        padding: EdgeInsets.symmetric(horizontal: 4),
+                        child: Text(':', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 20, color: AppColors.textDark)),
+                      ),
+                      _CountdownUnit(value: _fmt(m), label: 'Min'),
+                      const Padding(
+                        padding: EdgeInsets.symmetric(horizontal: 4),
+                        child: Text(':', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 20, color: AppColors.textDark)),
+                      ),
+                      _CountdownUnit(value: _fmt(s), label: 'Secs'),
+                    ],
+                  ),
+                ],
+              ),
             ),
-          ),
 
           if (widget.showDetail || widget.earnActivo) ...[
             const SizedBox(height: 16),
@@ -1049,7 +1141,7 @@ class _PocketCardVisual extends StatelessWidget {
                   mainAxisAlignment: MainAxisAlignment.spaceBetween,
                   children: [
                     Text(
-                      active ? '${balance.toStringAsFixed(4)} \$VIVA' : 'SIN ACTIVAR',
+                      active ? '${balance.toStringAsFixed(4)} USDT' : 'SIN ACTIVAR',
                       style: TextStyle(
                         color: active ? AppColors.lime : AppColors.white.withValues(alpha: 0.5),
                         fontSize: active ? 18 : 14, fontWeight: FontWeight.bold),
@@ -1436,6 +1528,7 @@ class _DepositModalState extends State<_DepositModal> with SingleTickerProviderS
     final u = widget.provider.user;
     final viva = (u?['viva_balance'] as num?)?.toDouble() ?? 0;
     final usdt = (u?['usdt_balance'] as num?)?.toDouble() ?? 0;
+    final vivaToUsdt = (u?['viva_to_usdt_rate'] as num?)?.toDouble() ?? 0.00005485;
     final cardStatus = u?['card_status'] as String? ?? 'none';
     final cardActive = cardStatus == 'active';
 
@@ -1516,6 +1609,7 @@ class _DepositModalState extends State<_DepositModal> with SingleTickerProviderS
                   provider: widget.provider,
                   viva: viva,
                   usdt: usdt,
+                  vivaToUsdt: vivaToUsdt,
                   cardActive: cardActive,
                   parentContext: widget.parentContext,
                   scrollController: scroll,
@@ -1749,7 +1843,7 @@ class _QrDepositTabState extends State<_QrDepositTab> {
 // ── Tab 2: Transferir saldo a la tarjeta (USDT) ─────────────
 class _TransferToCardTab extends StatefulWidget {
   final AppProvider provider;
-  final double viva, usdt;
+  final double viva, usdt, vivaToUsdt;
   final bool cardActive;
   final BuildContext parentContext;
   final ScrollController scrollController;
@@ -1757,6 +1851,7 @@ class _TransferToCardTab extends StatefulWidget {
     required this.provider,
     required this.viva,
     required this.usdt,
+    required this.vivaToUsdt,
     required this.cardActive,
     required this.parentContext,
     required this.scrollController,
@@ -1772,10 +1867,8 @@ class _TransferToCardTabState extends State<_TransferToCardTab> {
   final _ctrl = TextEditingController(text: '10');
   bool _loading = false;
 
-  static const _vivaToUsdt = 0.01; // tasa demo
-
   double get _monto => double.tryParse(_ctrl.text) ?? 0;
-  double get _usdtResultante => _source == 0 ? _monto * _vivaToUsdt * 0.98 : _monto;
+  double get _usdtResultante => _source == 0 ? _monto * widget.vivaToUsdt * 0.98 : _monto;
   double get _disponible => _source == 0 ? widget.viva : widget.usdt;
   String get _ticker => _source == 0 ? r'$VIVA' : 'USDT';
 
@@ -1914,7 +2007,7 @@ class _TransferToCardTabState extends State<_TransferToCardTab> {
               ),
               if (_source == 0) ...[
                 const SizedBox(height: 6),
-                const _SummaryRow(label: 'Tasa swap', value: '1 \$VIVA = 0.0100 USDT', valueColor: AppColors.textMuted),
+                _SummaryRow(label: 'Tasa swap', value: '1 \$VIVA = ${widget.vivaToUsdt.toStringAsFixed(8)} USDT', valueColor: AppColors.textMuted),
                 const SizedBox(height: 6),
                 const _SummaryRow(label: 'Fee (2%)', value: '−0.02 USDT/VIVA', valueColor: Colors.orange),
               ],
@@ -1942,7 +2035,7 @@ class _TransferToCardTabState extends State<_TransferToCardTab> {
               String msg;
               if (_source == 1) {
                 // USDT → tarjeta directo (reutiliza loadCard con USDT convertido)
-                ok = await widget.provider.loadCardFromWallet(_monto / _vivaToUsdt);
+                ok = await widget.provider.loadCardFromWallet(_monto / widget.vivaToUsdt);
                 msg = ok ? 'USDT transferido a tu Pocket Card' : widget.provider.error ?? 'Error';
               } else {
                 // $VIVA → swap → tarjeta
@@ -2092,7 +2185,7 @@ void _showSwapModal(BuildContext context, AppProvider p) {
       final u = p.user;
       final viva = (u?['viva_balance'] as num?)?.toDouble() ?? 0;
       final usdt = (u?['usdt_balance'] as num?)?.toDouble() ?? 0;
-      final rate = (u?['viva_to_usdt_rate'] as num?)?.toDouble() ?? 0.01;
+      final rate = (u?['viva_to_usdt_rate'] as num?)?.toDouble() ?? 0.00005485;
       return DraggableScrollableSheet(
         expand: false,
         initialChildSize: 0.6,

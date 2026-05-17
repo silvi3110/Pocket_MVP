@@ -26,7 +26,18 @@ class _VivaScreenState extends State<VivaScreen> {
     final megas = (line?['megas_acumuladas'] as num?)?.toDouble() ?? 0;
     final alvaPts = (line?['puntos_alva_omg'] as num?)?.toInt() ?? 0;
 
-    return RefreshIndicator(
+    return Scaffold(
+      appBar: AppBar(
+        title: const Text('Mi VIVA'),
+        backgroundColor: AppColors.white,
+        foregroundColor: AppColors.textDark,
+        elevation: 0,
+        leading: IconButton(
+          icon: const Icon(Icons.arrow_back_rounded, color: AppColors.textDark),
+          onPressed: () => Navigator.pop(context),
+        ),
+      ),
+      body: RefreshIndicator(
       onRefresh: () async {
         await provider.refreshProfile();
         await provider.loadVivaLine();
@@ -57,7 +68,16 @@ class _VivaScreenState extends State<VivaScreen> {
                   const SizedBox(height: 16),
                   ElevatedButton(
                     onPressed: () async {
-                      final ok = await provider.linkViva(u?['phone'] ?? '');
+                      final phone = u?['phone'] as String? ?? '';
+                      if (phone.isEmpty || phone.startsWith('pocket_')) {
+                        if (context.mounted) {
+                          ScaffoldMessenger.of(context).showSnackBar(
+                            const SnackBar(content: Text('Para vincular tu línea VIVA necesitas registrarte con un número VIVA activo')),
+                          );
+                        }
+                        return;
+                      }
+                      final ok = await provider.linkViva(phone);
                       if (context.mounted) {
                         ScaffoldMessenger.of(context).showSnackBar(
                           SnackBar(content: Text(ok ? 'Línea vinculada' : provider.error ?? 'Error')),
@@ -156,6 +176,7 @@ class _VivaScreenState extends State<VivaScreen> {
           ],
         ],
       ),
+    ),
     );
   }
 }

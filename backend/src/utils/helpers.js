@@ -4,9 +4,10 @@ const CONFIG = {
   nextRewardAt: 900,
   alvaToPocketRatio: 0.5,
   // Pocket maneja $VIVA y USDT como saldos principales.
-  // El cash-in llega en BOB (QR interbancario) y se convierte a $VIVA al tipo de cambio simulado.
-  BOB_TO_VIVA_RATE: 0.14,  // 1 BOB = 0.14 $VIVA (demo fijo)
-  VIVA_TO_USDT_RATE: 0.01, // 1 $VIVA = 0.01 USDT (demo fijo)
+  // 1 $VIVA = 0.000532 BOB  →  1 BOB = 1879.699... $VIVA
+  // 1 USDT  = 9.7 BOB       →  1 $VIVA = 0.000532/9.7 ≈ 0.00005485 USDT
+  BOB_TO_VIVA_RATE: 1879.699,   // 1 BOB = 1879.699 $VIVA
+  VIVA_TO_USDT_RATE: 0.00005485, // 1 $VIVA = 0.00005485 USDT
   SWAP_FEE: 0.02,           // 2% comisión en swap
   EARN_APY: 0.20,           // 20% APY anual
   EARN_MIN_VIVA: 200,       // mínimo 200 $VIVA para activar EARN

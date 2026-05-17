@@ -113,6 +113,22 @@ class _MascotaPanelState extends State<MascotaPanel> {
               _badge('Capa héroe', accesorios.contains('capa_heroe')),
             ],
           ),
+          const SizedBox(height: 16),
+          const Text('Cuidar a Cachuchín', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 15, color: AppColors.textDark)),
+          const SizedBox(height: 10),
+          Row(
+            children: [
+              Expanded(child: _MascotaActionBtn(icon: Icons.fastfood_rounded, label: 'Alimentar\n+10 energía', color: AppColors.lime, onTap: () async {
+                final ok = await context.read<AppProvider>().feedMascota();
+                if (context.mounted) ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(ok ? '¡Cachuchín comió!' : 'No se pudo alimentar'), backgroundColor: ok ? AppColors.greenDark : Colors.red));
+              })),
+              const SizedBox(width: 10),
+              Expanded(child: _MascotaActionBtn(icon: Icons.sports_esports_rounded, label: 'Jugar\n+5 energía', color: AppColors.purple, onTap: () async {
+                final ok = await context.read<AppProvider>().playWithMascota();
+                if (context.mounted) ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(ok ? '¡Cachuchín jugó contigo!' : 'No se pudo jugar'), backgroundColor: ok ? AppColors.greenDark : Colors.red));
+              })),
+            ],
+          ),
         ],
       ),
     );
@@ -126,4 +142,32 @@ class _MascotaPanelState extends State<MascotaPanel> {
       avatar: Icon(ok ? Icons.check_circle : Icons.lock, size: 14, color: ok ? AppColors.purple : AppColors.textMuted),
     );
   }
+}
+
+class _MascotaActionBtn extends StatelessWidget {
+  final IconData icon;
+  final String label;
+  final Color color;
+  final VoidCallback onTap;
+  const _MascotaActionBtn({required this.icon, required this.label, required this.color, required this.onTap});
+
+  @override
+  Widget build(BuildContext context) => GestureDetector(
+    onTap: onTap,
+    child: Container(
+      padding: const EdgeInsets.symmetric(vertical: 14),
+      decoration: BoxDecoration(
+        color: color.withValues(alpha: 0.1),
+        borderRadius: BorderRadius.circular(14),
+        border: Border.all(color: color.withValues(alpha: 0.3)),
+      ),
+      child: Column(
+        children: [
+          Icon(icon, color: color, size: 28),
+          const SizedBox(height: 6),
+          Text(label, textAlign: TextAlign.center, style: TextStyle(fontSize: 11, color: color, fontWeight: FontWeight.w600)),
+        ],
+      ),
+    ),
+  );
 }
