@@ -1,0 +1,34 @@
+# Dependencies
+node_modules/
+backend/node_modules/
+
+# Env & secrets
+.env
+.env.*
+!.env.example
+
+# Logs
+*.log
+
+# Flutter / Dart
+.dart_tool/
+.packages
+build/
+pocket_app/build/
+pocket_app/.flutter-plugins
+pocket_app/.flutter-plugins-dependencies
+
+# IDE
+.idea/
+.vscode/
+*.iml
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Flutter SDK local (no subir — usar INSTALAR-FLUTTER.ps1)
+tools/
+
+# Docker volumes
+postgres_data/

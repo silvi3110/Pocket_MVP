@@ -1,0 +1,9 @@
+{
+  "name": "Pocket Card",
+  "short_name": "Pocket",
+  "start_url": "/app/",
+  "display": "standalone",
+  "background_color": "#5C2FA0",
+  "theme_color": "#5C2FA0",
+  "orientation": "portrait"
+}
