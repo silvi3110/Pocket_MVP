@@ -143,6 +143,7 @@ class AppProvider extends ChangeNotifier {
     return res['reply'] as String?;
   }
 
+  /// Cash-in QR: el usuario paga Bs y recibe $VIVA al tipo de cambio demo.
   Future<bool> walletDeposit(double amount) async {
     try {
       final res = await api.post('/api/wallet/deposit', {'monto': amount});
@@ -285,5 +286,69 @@ class AppProvider extends ChangeNotifier {
   Future<void> toggleEasyMode(bool enabled) async {
     await api.patch('/api/me/modo-facil', {'enabled': enabled});
     await refreshProfile();
+  }
+
+  // ── EARN ──────────────────────────────────────────────────────────
+
+  Future<Map<String, dynamic>?> earnStatus() async {
+    try {
+      return Map<String, dynamic>.from(await api.get('/api/earn/status'));
+    } catch (_) {
+      return null;
+    }
+  }
+
+  Future<bool> earnActivate() async {
+    try {
+      final res = await api.post('/api/earn/activate');
+      _applyUser(res['user']);
+      notifyListeners();
+      return true;
+    } catch (e) {
+      error = e.toString().replaceAll('Exception: ', '');
+      notifyListeners();
+      return false;
+    }
+  }
+
+  Future<bool> earnAcreditar() async {
+    try {
+      final res = await api.post('/api/earn/acreditar');
+      _applyUser(res['user']);
+      notifyListeners();
+      return true;
+    } catch (e) {
+      error = e.toString().replaceAll('Exception: ', '');
+      notifyListeners();
+      return false;
+    }
+  }
+
+  // ── SWAP ──────────────────────────────────────────────────────────
+
+  Future<bool> swapVivaToUsdt(double amount) async {
+    try {
+      final res = await api.post('/api/swap/viva-usdt', {'monto_viva': amount});
+      _applyUser(res['user']);
+      notifyListeners();
+      return true;
+    } catch (e) {
+      error = e.toString().replaceAll('Exception: ', '');
+      notifyListeners();
+      return false;
+    }
+  }
+
+  Future<bool> swapUsdtToViva(double amount) async {
+    try {
+      final res = await api.post('/api/swap/usdt-viva', {'monto_usdt': amount});
+      _applyUser(res['user']);
+      notifyListeners();
+      return true;
+    } catch (e) {
+      error = e.toString().replaceAll('Exception: ', '');
+      notifyListeners();
+      return false;
+    }
   }
 }

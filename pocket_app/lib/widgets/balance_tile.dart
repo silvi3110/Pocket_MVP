@@ -6,6 +6,7 @@ class BalanceTile extends StatelessWidget {
   final String value;
   final IconData icon;
   final Color color;
+  final String? badge;
 
   const BalanceTile({
     super.key,
@@ -13,13 +14,14 @@ class BalanceTile extends StatelessWidget {
     required this.value,
     required this.icon,
     required this.color,
+    this.badge,
   });
 
   @override
   Widget build(BuildContext context) {
     return Expanded(
       child: Container(
-        padding: const EdgeInsets.all(16),
+        padding: const EdgeInsets.all(12),
         decoration: BoxDecoration(
           color: AppColors.white,
           borderRadius: BorderRadius.circular(14),
@@ -28,16 +30,31 @@ class BalanceTile extends StatelessWidget {
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            Icon(icon, color: color, size: 28),
-            const SizedBox(height: 8),
-            Text(label, style: const TextStyle(color: AppColors.textMuted, fontSize: 12)),
-            const SizedBox(height: 4),
+            Row(
+              children: [
+                Icon(icon, color: color, size: 22),
+                if (badge != null) ...[
+                  const SizedBox(width: 4),
+                  Container(
+                    padding: const EdgeInsets.symmetric(horizontal: 4, vertical: 1),
+                    decoration: BoxDecoration(
+                      color: AppColors.lime,
+                      borderRadius: BorderRadius.circular(4),
+                    ),
+                    child: Text(badge!, style: const TextStyle(fontSize: 8, fontWeight: FontWeight.bold, color: AppColors.textOnLime)),
+                  ),
+                ],
+              ],
+            ),
+            const SizedBox(height: 6),
+            Text(label, style: const TextStyle(color: AppColors.textMuted, fontSize: 11)),
+            const SizedBox(height: 2),
             Text(
               value,
               style: TextStyle(
                 color: color,
                 fontWeight: FontWeight.bold,
-                fontSize: 16,
+                fontSize: 15,
               ),
             ),
           ],

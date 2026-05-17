@@ -117,7 +117,7 @@ class PocketCardWidget extends StatelessWidget {
                           ),
                           const SizedBox(height: 4),
                           Text(
-                            active ? 'Bs ${balance.toStringAsFixed(2)}' : 'INACTIVA',
+                            active ? '${balance.toStringAsFixed(4)} \$VIVA' : 'INACTIVA',
                             style: const TextStyle(
                               color: AppColors.lime,
                               fontSize: 22,

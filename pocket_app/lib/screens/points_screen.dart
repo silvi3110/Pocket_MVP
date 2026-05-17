@@ -37,51 +37,104 @@ class _PointsScreenState extends State<PointsScreen> {
       child: ListView(
         padding: const EdgeInsets.all(16),
         children: [
+          // ── Hero puntos ──────────────────────────────────────────
           Container(
             padding: const EdgeInsets.all(24),
             decoration: BoxDecoration(
-              gradient: const LinearGradient(colors: [AppColors.purple, AppColors.green]),
+              gradient: const LinearGradient(
+                colors: [AppColors.purple, AppColors.green],
+                begin: Alignment.topLeft,
+                end: Alignment.bottomRight,
+              ),
               borderRadius: BorderRadius.circular(20),
             ),
             child: Column(
               children: [
-                const Text('Puntos Pocket', style: TextStyle(color: AppColors.white, fontSize: 14)),
+                const Icon(Icons.stars_rounded, color: AppColors.gold, size: 36),
                 const SizedBox(height: 8),
-                Text('$points', style: const TextStyle(color: AppColors.white, fontSize: 48, fontWeight: FontWeight.bold)),
+                Text(
+                  '$points',
+                  style: const TextStyle(color: AppColors.white, fontSize: 52, fontWeight: FontWeight.bold, height: 1),
+                ),
+                const Text('Puntos Pocket', style: TextStyle(color: AppColors.white, fontSize: 14)),
                 const SizedBox(height: 16),
                 ClipRRect(
                   borderRadius: BorderRadius.circular(8),
                   child: LinearProgressIndicator(
                     value: progress,
                     minHeight: 8,
-                    backgroundColor: AppColors.white.withValues(alpha: 0.3),
+                    backgroundColor: AppColors.white.withValues(alpha: 0.25),
                     color: AppColors.gold,
                   ),
                 ),
                 const SizedBox(height: 8),
                 Text(
-                  'Te faltan ${(nextAt - points).clamp(0, nextAt)} pts para el próximo premio',
-                  style: TextStyle(color: AppColors.white.withValues(alpha: 0.9), fontSize: 12),
+                  'Próximo: Gift Card Bs 25 · Faltan ${(nextAt - points).clamp(0, nextAt)} pts',
+                  style: TextStyle(color: AppColors.white.withValues(alpha: 0.85), fontSize: 12),
                 ),
               ],
             ),
           ),
-          const SizedBox(height: 24),
-          const Text('Catálogo Gift Cards', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 18)),
+          const SizedBox(height: 16),
+
+          // ── Cómo se ganan ────────────────────────────────────────
+          Container(
+            padding: const EdgeInsets.all(14),
+            decoration: BoxDecoration(
+              color: AppColors.purpleLight,
+              borderRadius: BorderRadius.circular(14),
+            ),
+            child: const Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text('¿Cómo ganar puntos Pocket?', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 14)),
+                SizedBox(height: 8),
+                _Bullet('Pagando con tu Pocket Card (1–2 pts/\$VIVA según tier)'),
+                _Bullet('Navegando en ALVA / Viva App — los mismos puntos'),
+                _Bullet('Canjeables por Gift Cards, megas o marketplace ALVA'),
+              ],
+            ),
+          ),
+          const SizedBox(height: 20),
+
+          // ── Catálogo Gift Cards ──────────────────────────────────
+          const Text('Gift Cards disponibles', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 18)),
           const SizedBox(height: 12),
           ...provider.giftCards.map((gc) {
             final cost = (gc['points_cost'] as num).toInt();
             final value = (gc['value_bob'] as num).toDouble();
             final canRedeem = points >= cost;
-            return Card(
+            return Container(
               margin: const EdgeInsets.only(bottom: 10),
-              child: ListTile(
-                leading: CircleAvatar(
-                  backgroundColor: AppColors.gold.withValues(alpha: 0.2),
-                  child: const Icon(Icons.card_giftcard, color: AppColors.gold),
+              decoration: BoxDecoration(
+                color: AppColors.white,
+                borderRadius: BorderRadius.circular(14),
+                border: Border.all(
+                  color: canRedeem
+                      ? AppColors.purple.withValues(alpha: 0.3)
+                      : AppColors.textMuted.withValues(alpha: 0.15),
                 ),
-                title: Text(gc['name'] ?? 'Gift Card'),
-                subtitle: Text('$cost puntos'),
+              ),
+              child: ListTile(
+                contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 4),
+                leading: Container(
+                  width: 44,
+                  height: 44,
+                  decoration: BoxDecoration(
+                    color: canRedeem
+                        ? AppColors.gold.withValues(alpha: 0.15)
+                        : AppColors.background,
+                    borderRadius: BorderRadius.circular(10),
+                  ),
+                  child: Icon(
+                    Icons.card_giftcard_rounded,
+                    color: canRedeem ? AppColors.gold : AppColors.textMuted,
+                  ),
+                ),
+                title: Text(gc['name'] ?? 'Gift Card',
+                  style: const TextStyle(fontWeight: FontWeight.w600)),
+                subtitle: Text('Bs ${value.toStringAsFixed(0)} · $cost pts',
+                  style: const TextStyle(fontSize: 12, color: AppColors.textMuted)),
                 trailing: ElevatedButton(
                   onPressed: canRedeem
                       ? () async {
@@ -93,7 +146,10 @@ class _PointsScreenState extends State<PointsScreen> {
                                 title: const Text('Gift Card canjeada'),
                                 content: Text('Código: ${res['code']}\nValor: Bs $value'),
                                 actions: [
-                                  ElevatedButton(onPressed: () => Navigator.pop(ctx), child: const Text('OK')),
+                                  ElevatedButton(
+                                    onPressed: () => Navigator.pop(ctx),
+                                    child: const Text('OK'),
+                                  ),
                                 ],
                               ),
                             );
@@ -101,34 +157,70 @@ class _PointsScreenState extends State<PointsScreen> {
                         }
                       : null,
                   style: ElevatedButton.styleFrom(
-                    backgroundColor: canRedeem ? AppColors.green : AppColors.textMuted,
-                    padding: const EdgeInsets.symmetric(horizontal: 16),
+                    backgroundColor: canRedeem ? AppColors.purple : AppColors.textMuted,
+                    foregroundColor: AppColors.white,
+                    padding: const EdgeInsets.symmetric(horizontal: 14),
                   ),
-                  child: Text(canRedeem ? 'Canjear' : 'Faltan ${cost - points}'),
+                  child: Text(
+                    canRedeem ? 'Canjear' : '${cost - points} pts',
+                    style: const TextStyle(fontSize: 12),
+                  ),
                 ),
               ),
             );
           }),
-          const SizedBox(height: 16),
-          const Text('Historial', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 16)),
+
+          const SizedBox(height: 20),
+
+          // ── Historial ────────────────────────────────────────────
+          const Text('Historial', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 18)),
           const SizedBox(height: 8),
           if (provider.pointsHistory.isEmpty)
-            const Text('Sin movimientos', style: TextStyle(color: AppColors.textMuted))
+            const Padding(
+              padding: EdgeInsets.all(16),
+              child: Text('Sin movimientos aún', style: TextStyle(color: AppColors.textMuted)),
+            )
           else
             ...provider.pointsHistory.map((h) {
-              final isEarn = h['type'] == 'earn';
-              return ListTile(
-                leading: Icon(
-                  isEarn ? Icons.add_circle : Icons.remove_circle,
-                  color: isEarn ? AppColors.green : AppColors.purple,
+              final delta = (h['amount'] as num?)?.toInt() ?? 0;
+              final isEarn = delta > 0;
+              return Container(
+                margin: const EdgeInsets.only(bottom: 6),
+                padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+                decoration: BoxDecoration(
+                  color: AppColors.white,
+                  borderRadius: BorderRadius.circular(12),
                 ),
-                title: Text(h['description'] ?? h['type']),
-                trailing: Text(
-                  '${isEarn ? '+' : '-'}${h['amount']}',
-                  style: TextStyle(
-                    fontWeight: FontWeight.bold,
-                    color: isEarn ? AppColors.green : AppColors.purple,
-                  ),
+                child: Row(
+                  children: [
+                    Container(
+                      width: 36,
+                      height: 36,
+                      decoration: BoxDecoration(
+                        color: (isEarn ? AppColors.lime : AppColors.purple).withValues(alpha: 0.12),
+                        shape: BoxShape.circle,
+                      ),
+                      child: Icon(
+                        isEarn ? Icons.add_rounded : Icons.remove_rounded,
+                        color: isEarn ? AppColors.greenDark : AppColors.purple,
+                        size: 18,
+                      ),
+                    ),
+                    const SizedBox(width: 12),
+                    Expanded(
+                      child: Text(
+                        h['description'] ?? h['type'] ?? '—',
+                        style: const TextStyle(fontSize: 13, fontWeight: FontWeight.w500),
+                      ),
+                    ),
+                    Text(
+                      '${isEarn ? '+' : ''}$delta pts',
+                      style: TextStyle(
+                        fontWeight: FontWeight.bold,
+                        color: isEarn ? AppColors.greenDark : AppColors.purple,
+                      ),
+                    ),
+                  ],
                 ),
               );
             }),
@@ -136,4 +228,21 @@ class _PointsScreenState extends State<PointsScreen> {
       ),
     );
   }
+}
+
+class _Bullet extends StatelessWidget {
+  final String text;
+  const _Bullet(this.text);
+
+  @override
+  Widget build(BuildContext context) => Padding(
+    padding: const EdgeInsets.only(bottom: 5),
+    child: Row(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        const Text('• ', style: TextStyle(color: AppColors.purple, fontWeight: FontWeight.bold)),
+        Expanded(child: Text(text, style: const TextStyle(fontSize: 13))),
+      ],
+    ),
+  );
 }
