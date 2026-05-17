@@ -143,6 +143,12 @@ class AppProvider extends ChangeNotifier {
     return res['reply'] as String?;
   }
 
+  Future<void> tataReset() async {
+    try {
+      await api.post('/api/tata/reset', {});
+    } catch (_) {}
+  }
+
   /// Cash-in QR: el usuario paga Bs y recibe $VIVA al tipo de cambio demo.
   Future<bool> walletDeposit(double amount) async {
     try {
