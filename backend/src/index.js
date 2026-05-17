@@ -30,16 +30,9 @@ app.use('/app', express.static(webDemoPath));
 app.get('/app', (_, res) => res.sendFile(path.join(webDemoPath, 'index.html')));
 app.get('/', (_, res) => res.redirect('/app'));
 
-// Pagina con URL para celular (evita about:blank)
-app.get('/celular', (req, res) => {
-  const host = req.headers.host || 'localhost:3000';
-  res.send(`<!DOCTYPE html><html><head><meta charset=utf-8>
-<meta name=viewport content="width=device-width,initial-scale=1">
-<meta http-equiv=refresh content="0;url=http://${host}/app">
-<title>Pocket</title></head><body style="font-family:sans-serif;text-align:center;padding:40px;background:#5C2FA0;color:white">
-<h1>POCKET</h1><p>Redirigiendo...</p>
-<p><a href="http://${host}/app" style="color:#C8FF2A;font-size:18px">Toca aqui si no carga</a></p>
-</body></html>`);
+// Pagina QR para celular (misma Wi-Fi)
+app.get(['/celular', '/m'], (_, res) => {
+  res.sendFile(path.join(webDemoPath, 'celular.html'));
 });
 
 app.use('/api/auth', authRoutes);

@@ -1,0 +1,84 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
+  <meta name="theme-color" content="#5C2FA0" />
+  <title>Pocket — Abrir en celular</title>
+  <style>
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    body {
+      font-family: 'Segoe UI', system-ui, sans-serif;
+      background: linear-gradient(160deg, #5C2FA0, #4A2480, #3D1F6E);
+      min-height: 100vh;
+      color: #fff;
+      padding: 24px 20px;
+      text-align: center;
+    }
+    h1 { font-size: 2.2rem; letter-spacing: 6px; margin-bottom: 4px; }
+    .sub { opacity: 0.9; font-size: 0.9rem; margin-bottom: 24px; }
+    .card {
+      background: #fff;
+      color: #1a1a2e;
+      border-radius: 20px;
+      padding: 24px;
+      max-width: 360px;
+      margin: 0 auto 20px;
+    }
+    #qr { width: 220px; height: 220px; margin: 12px auto; display: block; border-radius: 12px; }
+    .url {
+      background: #F4FFD6;
+      color: #2D3A00;
+      padding: 14px;
+      border-radius: 12px;
+      font-size: 1rem;
+      font-weight: 700;
+      word-break: break-all;
+      border: 2px solid #C8FF2A;
+      margin: 12px 0;
+    }
+    .btn {
+      display: block;
+      width: 100%;
+      padding: 16px;
+      background: #C8FF2A;
+      color: #2D3A00;
+      font-weight: 800;
+      font-size: 1.1rem;
+      border: none;
+      border-radius: 14px;
+      text-decoration: none;
+      margin-top: 12px;
+    }
+    .steps { text-align: left; font-size: 0.85rem; color: #6b7280; margin-top: 16px; line-height: 1.6; }
+    .steps li { margin-bottom: 8px; }
+    .warn { color: #C8FF2A; font-size: 0.8rem; margin-top: 16px; }
+  </style>
+</head>
+<body>
+  <h1>POCKET</h1>
+  <p class="sub">Abre en tu celular (misma Wi‑Fi que la PC)</p>
+  <div class="card">
+    <p style="font-size:0.85rem;color:#6b7280">Escanea el QR o copia el enlace</p>
+    <img id="qr" alt="QR Pocket" />
+    <div class="url" id="app-url">Cargando...</div>
+    <a class="btn" id="open-btn" href="#">Abrir Pocket</a>
+    <ol class="steps">
+      <li>PC y celular en la <strong>misma red Wi‑Fi</strong></li>
+      <li>Abre <strong>Chrome</strong> en el celular</li>
+      <li>Pega la URL o escanea el QR</li>
+      <li>Login: <strong>70000001</strong> / PIN <strong>1234</strong></li>
+      <li>Menú ⋮ → <strong>Instalar app</strong> (PWA)</li>
+    </ol>
+  </div>
+  <p class="warn">No uses localhost ni about:blank en el celular</p>
+  <script>
+    const host = location.hostname;
+    const appUrl = 'http://' + host + ':3000/app';
+    document.getElementById('app-url').textContent = appUrl;
+    document.getElementById('open-btn').href = appUrl;
+    document.getElementById('qr').src =
+      'https://api.qrserver.com/v1/create-qr-code/?size=220x220&data=' + encodeURIComponent(appUrl);
+  </script>
+</body>
+</html>

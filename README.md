@@ -21,6 +21,19 @@ Colores: verde `#00B140` · morado `#7B2CBF` · blanco
 
 ---
 
+## Usar en el CELULAR (PWA)
+
+1. PC y celular en la **misma Wi‑Fi**
+2. Doble clic en **`CELULAR.bat`** (o `.\CELULAR-PWA.ps1`)
+3. En el celular abre la URL que muestra (ej. `http://192.168.x.x:3000/app`)
+4. O escanea el QR en `http://192.168.x.x:3000/m`
+5. Login: **70000001** / PIN **1234**
+6. Chrome → menú ⋮ → **Instalar app**
+
+> No uses `localhost` en el celular. Si no carga, ejecuta el script **como Administrador** (firewall).
+
+---
+
 ## Inicio rápido
 
 ```powershell
