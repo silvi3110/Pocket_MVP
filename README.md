@@ -9,7 +9,6 @@
 | | |
 |---|---|
 | **Demo en vivo** | [lonna-unfoundered-evie.ngrok-free.dev](https://lonna-unfoundered-evie.ngrok-free.dev) |
-| **Propuesta completa en Notion** | [Pocket como Hub Financiero VIVA/ALVA](https://www.notion.so/Propuesta-Final-Pocket-como-Hub-Financiero-del-Ecosistema-VIVA-ALVA-36274bfa8990809bb9b4fd458a612fd9) |
 
 **Credenciales demo:** teléfono `70000001` · PIN `123456`
 
